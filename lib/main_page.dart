@@ -14,12 +14,33 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   HereMapController _controller;
   MapPolyline _mapPolyLine;
+  bool _activePolyLine = false;
+
+  //list untuk menyimpan tempat2 wisata yg ada di palembang
+  List<GeoCoordinates> places;
+  //menyimpan marker2 dari list di atas
+  List<MapMarker> markers;
+
+  //lokasi awal
+  GeoCoordinates initialLocation = GeoCoordinates(-3.0026799, 104.7657554);
 
   @override
   void dispose() {
     //ketika controllernya tidak null, maka jalankan finalize / akhiri
     _controller?.finalize();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    places = [
+      GeoCoordinates(-2.9961041, 104.7616614), // kampung kapitan
+      GeoCoordinates(-3.0231046, 104.782534), // jakabaring sport center
+      GeoCoordinates(-2.9508758, 104.7284836), // musium bala putra dewa
+      GeoCoordinates(-2.9917713, 104.7626595), // jembatan ampera
+    ];
+    markers = [];
   }
 
   @override
@@ -32,22 +53,36 @@ class _MainPageState extends State<MainPage> {
       Align(
         alignment: Alignment.bottomCenter,
         child: RaisedButton(
-          child: Text('Remove route'),
-          onPressed: () {
-            if(_mapPolyLine != null) {
-              _controller.mapScene.removeMapPolyline(_mapPolyLine);
-              _mapPolyLine = null;
-            }
-          }
-        ),
+            child: Text('Cari Wisata Terdekat'),
+            onPressed: () {
+              // if (_activePolyLine == false) {
+              //   _controller.mapScene.removeMapPolyline(_mapPolyLine);
+              //   _activePolyLine = true;
+              // } else {
+              //   _activePolyLine = false;
+              //   _controller.mapScene.addMapPolyline(_mapPolyLine);
+              // }
+              
+              //urutkan tempat wisata berdasarkan jaraknya
+              //membandingkan jarak marker1 dengan initial location / lokasi, awal dan marker2 dengan initial location / lokasi
+              markers.sort((marker1, marker2) => initialLocation
+                  .distanceTo(marker1.coordinates)
+                  .compareTo(initialLocation.distanceTo(marker2.coordinates)));
+
+              //membuang marker yang terdekat / reddot
+              _controller.mapScene.removeMapMarker(markers[0]);
+              //lalu gambar ulang menjadi thumb-up
+              drawMarker(_controller, 0, markers[0].coordinates, path: 'assets/images/thumbs-up.png');
+            }),
       )
     ]));
   }
 
-  Future<void> drawRedDot(HereMapController hereMapController, int drawOrder,
-      GeoCoordinates geoCoordinates) async {
+  Future<MapMarker> drawMarker(HereMapController hereMapController,
+      int drawOrder, GeoCoordinates geoCoordinates,
+      {String path = 'assets/images/circle.png'}) async {
     //load gambar
-    ByteData fileData = await rootBundle.load('assets/images/circle.png');
+    ByteData fileData = await rootBundle.load(path);
     //ubah menjadi pixel data / unsign integer
     Uint8List pixelData = fileData.buffer.asUint8List();
     //format gambar
@@ -57,6 +92,9 @@ class _MainPageState extends State<MainPage> {
     MapMarker mapMarker = MapMarker(geoCoordinates, mapImage);
     mapMarker.drawOrder = drawOrder;
     hereMapController.mapScene.addMapMarker(mapMarker);
+
+    //mengembalikan nilai dari marker
+    return mapMarker;
   }
 
   Future<void> drawPin(HereMapController hereMapController, int drawOrder,
@@ -122,14 +160,20 @@ class _MainPageState extends State<MainPage> {
         return;
       }
 
-      drawRedDot(hereMapController, 0, GeoCoordinates(-3.0026799, 104.7657554));
-      drawPin(hereMapController, 0, GeoCoordinates(-3.0026799, 104.7657554));
-      drawRoute(GeoCoordinates(-3.0026799, 104.7657554),
-          GeoCoordinates(-2.9995109, 104.7601542), hereMapController);
+      drawMarker(hereMapController, 0, initialLocation);
+      drawPin(hereMapController, 0, initialLocation);
+      // drawRoute(GeoCoordinates(-3.0026799, 104.7657554),
+      //     GeoCoordinates(-2.9995109, 104.7601542), hereMapController);
 
-      const double distanceToEarthInMeters = 8000;
-      hereMapController.camera.lookAtPointWithDistance(
-          GeoCoordinates(-3.0026799, 104.7657554), distanceToEarthInMeters);
+      //membuat marker dari tempat2 wisata lain
+      places.forEach((element) {
+        drawMarker(hereMapController, 0, element)
+            .then((marker) => markers.add(marker));
+      });
+
+      const double distanceToEarthInMeters = 15000;
+      hereMapController.camera
+          .lookAtPointWithDistance(initialLocation, distanceToEarthInMeters);
     });
   }
 }
