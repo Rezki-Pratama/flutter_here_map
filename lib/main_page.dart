@@ -19,6 +19,7 @@ class _MainPageState extends State<MainPage> {
   void dispose() {
     //ketika controllernya tidak null, maka jalankan finalize / akhiri
     _controller?.finalize();
+    
     super.dispose();
   }
 
