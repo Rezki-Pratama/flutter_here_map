@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/main_page.dart';
+import 'package:flutter_map/realtime_user_location.dart';
 
 import 'package:here_sdk/core.dart';
 
@@ -17,7 +18,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: MainPage(),
+      home: LocationPage(),
     );
   }
 }
